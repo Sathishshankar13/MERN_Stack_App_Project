@@ -25,7 +25,7 @@ spec:
       - name: ecr-registry-secret
       containers:
       - name: frontend
-        image: sathishshankar112/frontend:3
+        image: sathishshankar112/frontend:10
         imagePullPolicy: Always
         env:
           - name: REACT_APP_BACKEND_URL
