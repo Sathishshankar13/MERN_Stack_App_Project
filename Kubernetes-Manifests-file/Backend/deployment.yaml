@@ -22,7 +22,7 @@ spec:
         role: api
     spec:
       imagePullSecrets:
-      - name: ecr-registry-secret
+      - name: dockerhub-secret
       containers:
       - name: api
         image: sathishshankar83/mernbackend:6
