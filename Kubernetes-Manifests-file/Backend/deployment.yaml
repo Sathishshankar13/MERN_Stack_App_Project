@@ -25,7 +25,7 @@ spec:
       - name: dockerhub-secret
       containers:
       - name: api
-        image: sathishshankar83/mernbackend:6
+        image: sathishshankar13/mernbackend:6
         imagePullPolicy: Always
         env:
           - name: MONGO_CONN_STR
