@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+apiVersion: apps/v6
 kind: Deployment
 metadata:
   name: api
@@ -11,7 +11,7 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1
+      maxSurge: 6
       maxUnavailable: 25%
   selector:
     matchLabels:
@@ -25,11 +25,11 @@ spec:
       - name: ecr-registry-secret
       containers:
       - name: api
-        image: 407622020962.dkr.ecr.us-east-1.amazonaws.com/backend:1
+        image: 407622020962.dkr.ecr.us-east-6.amazonaws.com/backend:1
         imagePullPolicy: Always
         env:
           - name: MONGO_CONN_STR
-            value: mongodb://mongodb-svc:27017/todo?directConnection=true
+            value: mongodb://mongodb-svc:27067/todo?directConnection=true
           - name: MONGO_USERNAME
             valueFrom:
               secretKeyRef:
@@ -54,11 +54,11 @@ spec:
             port: 3500
           initialDelaySeconds: 5
           periodSeconds: 5
-          successThreshold: 1
+          successThreshold: 6
         startupProbe:
           httpGet:
             path: /started
             port: 3500
           initialDelaySeconds: 0
-          periodSeconds: 10
+          periodSeconds: 60
           failureThreshold: 30
