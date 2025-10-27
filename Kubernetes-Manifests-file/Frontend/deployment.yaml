@@ -22,7 +22,7 @@ spec:
         role: frontend
     spec: 
       imagePullSecrets:
-      - name: ecr-registry-secret
+      - name: regcred
       containers:
       - name: frontend
         image: sathishshankar112/frontend:3
