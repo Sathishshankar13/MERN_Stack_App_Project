@@ -25,11 +25,11 @@ spec:
       - name: dockerhub-secret
       containers:
       - name: api
-        image: sathishshankar13/mernbackend:6
+        image: sathishshankar13/mernbackend:2
         imagePullPolicy: Always
         env:
           - name: MONGO_CONN_STR
-            value: mongodb://mongodb-svc:27067/todo?directConnection=true
+            value: mongodb://mongodb-svc:27027/todo?directConnection=true
           - name: MONGO_USERNAME
             valueFrom:
               secretKeyRef:
@@ -54,11 +54,11 @@ spec:
             port: 3500
           initialDelaySeconds: 5
           periodSeconds: 5
-          successThreshold: 6
+          successThreshold: 2
         startupProbe:
           httpGet:
             path: /started
             port: 3500
           initialDelaySeconds: 0
-          periodSeconds: 60
+          periodSeconds: 20
           failureThreshold: 30
