@@ -1,0 +1,108 @@
+#
+pipeline {
+    agent any
+    tools {
+        nodejs 'nodejs'
+    }
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+        DOCKERHUB_REPO = 'sathishshankar13/mernbackend'
+        // AWS variables commented out
+        // AWS_ACCOUNT_ID = credentials('ACCOUNT_ID')
+        // AWS_ECR_REPO_NAME = credentials('ECR_REPO1')
+        // AWS_DEFAULT_REGION = 'us-east-1'
+        // REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/"
+        GIT_REPO_NAME = "MERN_Stack_App_Project"
+        GIT_USER_NAME = "Sathishshankar13"
+    }
+    stages {
+
+        stage('Cleaning Workspace') {
+            steps { cleanWs() }
+        }
+
+        stage('Checkout from Git') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Sathishshankar13/MERN_Stack_App_Project.git'
+            }
+        }
+
+        stage('Sonarqube Analysis') {
+            steps {
+                dir('Application-Code/backend') {
+                    withSonarQubeEnv('sonar-server') {
+                        sh '''$SCANNER_HOME/bin/sonar-scanner \
+                            -Dsonar.projectName=backend \
+                            -Dsonar.projectKey=backend'''
+                    }
+                }
+            }
+        }
+
+        stage('Quality Check') {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                }
+            }
+        }
+
+        stage('Trivy File Scan') {
+            steps {
+                dir('Application-Code/backend') {
+                    sh 'trivy fs . > trivyfs_${BUILD_NUMBER}.txt'
+                }
+            }
+        }
+
+        stage('Docker Image Build') {
+            steps {
+                script {
+                    dir('Application-Code/backend') {
+                        sh 'docker system prune -f'
+                        sh 'docker container prune -f'
+                        sh 'docker build -t ${DOCKERHUB_REPO}:${BUILD_NUMBER} .'
+                    }
+                }
+            }
+        }
+
+        stage('Dockerhub Image Pushing') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                            docker push ${DOCKERHUB_REPO}:${BUILD_NUMBER}
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh 'trivy image ${DOCKERHUB_REPO}:${BUILD_NUMBER} > trivyimage_${BUILD_NUMBER}.txt'
+            }
+        }
+
+        stage('Update Deployment File') {
+            steps {
+                dir('Kubernetes-Manifests-file/Backend') {
+                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                        sh '''
+                            git config user.email "satzkmr443@gmail.com"
+                            git config user.name "Sathishshankar13"
+                            BUILD_NUMBER=${BUILD_NUMBER}
+                            imageTag=$(grep -oP '(?<=backend:)[^ ]+' deployment.yaml)
+                            sed -i "s|${imageTag}|${BUILD_NUMBER}|" deployment.yaml
+                            git add deployment.yaml
+                            git commit -m "Update backend deployment Image to version ${BUILD_NUMBER}"
+                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}
